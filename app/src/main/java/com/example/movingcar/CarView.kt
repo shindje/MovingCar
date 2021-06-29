@@ -23,6 +23,7 @@ class CarView(context: Context, attrs: AttributeSet) : View(context, attrs) {
     init {
         textPaint = Paint()
         textPaint.textSize = 50f
+        textPaint.color = R.attr.colorPrimary
         m = Model()
     }
 
