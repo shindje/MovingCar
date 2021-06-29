@@ -1,6 +1,7 @@
 package com.example.movingcar
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.util.AttributeSet
 import android.view.View
@@ -10,31 +11,55 @@ private const val MARGIN = 100
 
 class CarView(context: Context, attrs: AttributeSet) : View(context, attrs) {
     private var isRunning = true
+    private var isVerticaMove = false   //Вертикальное направление движения
+    private var prevVerticaMove = false
     private var cx = MARGIN
     private var cy = MARGIN
-    private var d = 0
-
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-    }
+    private val d = 5
+    //Дополнительные Bitmap и Canvas для поворота рисунка без поворота всей View
+    private var bmp: Bitmap? = null
+    private var cnv: Canvas? = null
 
     override fun onDraw(canvas: Canvas?) {
-        val icon = ContextCompat.getDrawable(context, R.drawable.ic_car_top_view)
-        if (canvas != null && icon != null) {
+        if (bmp == null || cnv == null)
+            makeBitmapAndCanvas(0)
+        if (canvas != null) {
             if (isRunning) {
-                if (d == 0)
-                    d = maxOf(width, height) / 500
+                prevVerticaMove = isVerticaMove
+                //В конце движемся прямо, иначе - рандом
+                if (cx == width - MARGIN)
+                    isVerticaMove = true
+                else if (cy == height - MARGIN)
+                    isVerticaMove = false
+                else if (cx%50 == 0 && cy%50 == 0)
+                    isVerticaMove = Math.random() > 0.5
 
-                cx = minOf(cx + d, width - MARGIN)
-                cy = minOf(cy + d,  height - MARGIN)
+                //Если нужно повернуть рисунок
+                if (prevVerticaMove != isVerticaMove) {
+                    makeBitmapAndCanvas(if (isVerticaMove) 90 else 0)
+                }
+
+                if (isVerticaMove)
+                    cy = minOf(cy + d,  height - MARGIN)
+                else
+                    cx = minOf(cx + d, width - MARGIN)
             }
             if (cx == width - MARGIN && cy == height - MARGIN)
                 isRunning = false
-            icon.setBounds(cx, cy, cx + MARGIN, cy + MARGIN)
-            icon.draw(canvas)
+
+            canvas.drawBitmap(bmp!!, cx.toFloat(), cy.toFloat(), null)
 
             if (isRunning)
                 invalidate()
         }
+    }
+
+    private fun makeBitmapAndCanvas(angle: Int) {
+        val icon = ContextCompat.getDrawable(context, R.drawable.ic_car_top_view)
+        icon!!.setBounds(0, 0, MARGIN, MARGIN)
+        bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        cnv = Canvas(bmp!!)
+        cnv!!.rotate(angle.toFloat(), (MARGIN/2).toFloat(), (MARGIN/2).toFloat())
+        icon.draw(cnv!!)
     }
 }
