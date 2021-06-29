@@ -59,8 +59,10 @@ class CarView(context: Context, attrs: AttributeSet) : View(context, attrs) {
             if (m.cx == width - MARGIN && m.cy == height - MARGIN) {
                 m.isRunning = false
                 m.isFinished = true
-                canvas.drawText("Finished! Click to restart", 0f, MARGIN/2.toFloat(), textPaint)
-            } else
+            }
+            if (m.isFinished)
+                canvas.drawText("Click on car to start", 0f, MARGIN/2.toFloat(), textPaint)
+            else
                 canvas.drawText("Click anywhere to start/stop", 0f, MARGIN/2.toFloat(), textPaint)
 
             canvas.drawBitmap(bmp!!, m.cx.toFloat(), m.cy.toFloat(), null)
@@ -92,12 +94,17 @@ class CarView(context: Context, attrs: AttributeSet) : View(context, attrs) {
         return detector.onTouchEvent(event).let { result ->
             if (!result) {
                 if (event.action == MotionEvent.ACTION_UP) {
-                    m.isRunning = !m.isRunning
-                    if (m.isFinished) {
-                        m = Model()
-                        m.isRunning = true
+                    with(event) {
+                        if (m.isFinished) {
+                            if (x >= m.cx && x <= m.cx + MARGIN && y >= m.cy && y <= y + MARGIN) {
+                                m = Model()
+                                m.isRunning = true
+                                m.isFinished = false
+                            }
+                        } else
+                            m.isRunning = !m.isRunning
+                        invalidate()
                     }
-                    invalidate()
                     true
                 } else false
             } else true
