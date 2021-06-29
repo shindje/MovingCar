@@ -13,11 +13,7 @@ import androidx.core.content.ContextCompat
 private const val MARGIN = 100
 
 class CarView(context: Context, attrs: AttributeSet) : View(context, attrs) {
-    private var isRunning = false
-    private var isVerticaMove = false   //Вертикальное направление движения
-    private var prevVerticaMove = false
-    private var cx = 0
-    private var cy = 50
+    private var m: Model
     private val d = 5
     //Дополнительные Bitmap и Canvas для поворота рисунка без поворота всей View
     private var bmp: Bitmap? = null
@@ -27,50 +23,59 @@ class CarView(context: Context, attrs: AttributeSet) : View(context, attrs) {
     init {
         textPaint = Paint()
         textPaint.textSize = 50f
+        m = Model()
+    }
+
+    fun setModel(mm: Model) {
+        m = mm
     }
 
     override fun onDraw(canvas: Canvas?) {
         if (bmp == null || cnv == null) {
-            makeBitmapAndCanvas(0)
+            makeBitmapAndCanvas()
         }
         if (canvas != null) {
-            canvas.drawText("Click anywhere to start/stop", 0f, MARGIN/2.toFloat(), textPaint)
-            if (isRunning) {
-                prevVerticaMove = isVerticaMove
+            if (m.isRunning) {
+                m.prevVerticaMove = m.isVerticaMove
                 //В конце движемся прямо, иначе - рандом
-                if (cx == width - MARGIN)
-                    isVerticaMove = true
-                else if (cy == height - MARGIN)
-                    isVerticaMove = false
-                else if (cx%50 == 0 && cy%50 == 0)
-                    isVerticaMove = Math.random() > 0.5
+                if (m.cx == width - MARGIN)
+                    m.isVerticaMove = true
+                else if (m.cy == height - MARGIN)
+                    m.isVerticaMove = false
+                else if (m.cx%50 == 0 && m.cy%50 == 0)
+                    m.isVerticaMove = Math.random() > 0.5
 
                 //Если нужно повернуть рисунок
-                if (prevVerticaMove != isVerticaMove) {
-                    makeBitmapAndCanvas(if (isVerticaMove) 90 else 0)
+                if (m.prevVerticaMove != m.isVerticaMove) {
+                    makeBitmapAndCanvas()
                 }
 
-                if (isVerticaMove)
-                    cy = minOf(cy + d,  height - MARGIN)
+                if (m.isVerticaMove)
+                    m.cy = minOf(m.cy + d,  height - MARGIN)
                 else
-                    cx = minOf(cx + d, width - MARGIN)
+                    m.cx = minOf(m.cx + d, width - MARGIN)
             }
-            if (cx == width - MARGIN && cy == height - MARGIN)
-                isRunning = false
+            if (m.cx == width - MARGIN && m.cy == height - MARGIN) {
+                m.isRunning = false
+                m.isFinished = true
+                canvas.drawText("Finished! Click to restart", 0f, MARGIN/2.toFloat(), textPaint)
+            } else
+                canvas.drawText("Click anywhere to start/stop", 0f, MARGIN/2.toFloat(), textPaint)
 
-            canvas.drawBitmap(bmp!!, cx.toFloat(), cy.toFloat(), null)
+            canvas.drawBitmap(bmp!!, m.cx.toFloat(), m.cy.toFloat(), null)
 
-            if (isRunning)
+            if (m.isRunning)
                 invalidate()
         }
     }
 
-    private fun makeBitmapAndCanvas(angle: Int) {
+    private fun makeBitmapAndCanvas() {
+        val degree = if (m.isVerticaMove) 90 else 0
         val icon = ContextCompat.getDrawable(context, R.drawable.ic_car_top_view)
         icon!!.setBounds(0, 0, MARGIN, MARGIN)
         bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         cnv = Canvas(bmp!!)
-        cnv!!.rotate(angle.toFloat(), (MARGIN/2).toFloat(), (MARGIN/2).toFloat())
+        cnv!!.rotate(degree.toFloat(), (MARGIN/2).toFloat(), (MARGIN/2).toFloat())
         icon.draw(cnv!!)
     }
 
@@ -86,11 +91,17 @@ class CarView(context: Context, attrs: AttributeSet) : View(context, attrs) {
         return detector.onTouchEvent(event).let { result ->
             if (!result) {
                 if (event.action == MotionEvent.ACTION_UP) {
-                    isRunning = !isRunning
+                    m.isRunning = !m.isRunning
+                    if (m.isFinished) {
+                        m = Model()
+                        m.isRunning = true
+                    }
                     invalidate()
                     true
                 } else false
             } else true
         }
     }
+
+    fun getModel() = m
 }
